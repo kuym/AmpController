@@ -1,16 +1,19 @@
 #include <Cocoa/Cocoa.h>
 #include <CoreGraphics/CoreGraphics.h>
 
+#include "Model.h"
+
 #include "AppleRemote.h"
 #include "VolumeKeys.h"
 
 #include "SerialPort.h"
+#include "Scripting.h"
 
 ////////////////////////////////////////////////////////////////
 
 
 @class MenubarController;
-@class AmpControllerModel;
+
 @class UserInputController;
 
 @interface AmpControllerApp: NSObject <NSApplicationDelegate>
@@ -21,34 +24,11 @@
 	UserInputController*	_userInput;
 	
 	AmpControllerModel*		_model;
+	
+	Scripting*				_scripting;
+	
+	SerialPort*				_serialPort;
 }
-
-@end
-
-
-////////////////////////////////////////////////////////////////
-
-
-@interface AmpControllerModel: NSObject
-
-- (void)onChanged:(NSString*)propertyName call:(SEL)method on:(id)target;
-- (void)unbindChange:(NSString*)propertyName on:(id)target;
-
-
-- (float)volume;
-- (void)setVolume:(float)value;
-
-- (BOOL)autostart;
-- (void)setAutostart:(BOOL)enabled;
-
-- (NSString*)serialPort;
-- (void)setSerialPort:(NSString*)value;
-
-- (NSString*)deviceModel;
-- (void)setDeviceModel:(NSString*)value;
-
-- (NSString*)deviceStatus;
-- (void)setDeviceStatus:(NSString*)value;
 
 @end
 
@@ -162,6 +142,12 @@ typedef enum
 	_menubarController = [[MenubarController alloc] initWithModel:_model];
 	
 	[_model onChanged:@"autostart" call:@selector(onUpdateAutoStart:) on:self];
+	
+	[_model onChanged:@"serialPort" call:@selector(onSerialPortChanged:) on:self];
+	[_model onChanged:@"serialOutput" call:@selector(onSerialOutput:) on:self];
+	[self openSerialPort:[_model serialPort] baudRate:9600];	//@@script controlled baud
+
+	_scripting = [[Scripting alloc] initWithModel:_model];
 }
 
 - (void)onUpdateAutoStart:(NSNotification*)notification
@@ -215,104 +201,31 @@ typedef enum
 		CFRelease(foundItem);
 }
 
-@end
-
-
-////////////////////////////////////////////////////////////////
-
-
-@implementation AmpControllerModel
+- (void)openSerialPort:(NSString*)devicePath baudRate:(unsigned int)baud
 {
-@private
-	NSString*		_deviceStatus;
+	_serialPort = [[SerialPort alloc] initWithFile:[devicePath cStringUsingEncoding:NSUTF8StringEncoding] baudRate:baud];	// @@make script-controlled
+	[_serialPort onData:@selector(onSerialInput:) target:self];
 }
 
-- (id)init
+- (void)onSerialPortChanged:(NSNotification*)notification
 {
-	_deviceStatus = @"Disconnected";
-	return(self);
-}
-
-
-- (void)onChanged:(NSString*)propertyName call:(SEL)method on:(id)target
-{
-	[[NSNotificationCenter defaultCenter] addObserver:target selector:method name:propertyName object:self];
-}
-
-- (void)unbindChange:(NSString*)propertyName on:(id)target
-{
-	[[NSNotificationCenter defaultCenter] removeObserver:target name:propertyName object:self];
-}
-
-- (void)change:(NSString*)propertyName on:(id)target
-{
-	[[NSNotificationCenter defaultCenter] postNotificationName:propertyName object:target];
-}
-
-- (void)change:(NSString*)propertyName on:(id)target withInfo:(NSDictionary*)userInfo
-{
-	[[NSNotificationCenter defaultCenter] postNotificationName:propertyName object:target userInfo:userInfo];
-}
-
-
-- (float)volume
-{
-	return(3.f);
-}
-
-- (void)setVolume:(float)value
-{
-	printf("volume set to %f\n", value);
+	if(_serialPort != nil)
+	{
+		[_serialPort close];
+		[_serialPort unbindListener:self];
+	}
 	
-	[self change:@"volume" on:self];
+	[self openSerialPort:[_model serialPort] baudRate:9600];	//@@script controlled baud
 }
 
-- (BOOL)autostart
+- (void)onSerialInput:(NSNotification*)notification
 {
-	return([[NSUserDefaults standardUserDefaults] boolForKey:@"autostart"]);
+	[_model postSerialInput:[[notification userInfo] objectForKey:@"data"]];
 }
 
-- (void)setAutostart:(BOOL)autostart
+- (void)onSerialOutput:(NSNotification*)notification
 {
-	[[NSUserDefaults standardUserDefaults] setBool:autostart forKey:@"autostart"];
-	
-	[self change:@"autostart" on:self];
-}
-
-- (NSString*)serialPort
-{
-	return([[NSUserDefaults standardUserDefaults] stringForKey:@"serialport"]);
-}
-
-- (void)setSerialPort:(NSString*)value
-{
-	[[NSUserDefaults standardUserDefaults] setObject:value forKey:@"serialport"];
-	
-	[self change:@"serialPort" on:self];
-}
-
-- (NSString*)deviceModel
-{
-	return([[NSUserDefaults standardUserDefaults] stringForKey:@"devicemodel"]);
-}
-
-- (void)setDeviceModel:(NSString*)value
-{
-	[[NSUserDefaults standardUserDefaults] setObject:value forKey:@"devicemodel"];
-	
-	[self change:@"deviceModel" on:self];
-}
-
-- (NSString*)deviceStatus
-{
-	return(_deviceStatus);
-}
-
-- (void)setDeviceStatus:(NSString*)value
-{
-	_deviceStatus = value;
-	
-	[self change:@"deviceStatus" on:self];
+	[_serialPort write:[[notification userInfo] objectForKey:@"data"]];
 }
 
 @end
@@ -328,39 +241,36 @@ typedef enum
 	_model = model;
 	
 	_appleRemote = AppleRemote::Create();
-	_appleRemote->SetCallback(&onUserInputEvent, (void*)CFBridgingRetain(self));
+	_appleRemote->SetCallback(&onRemoteInputEvent, (void*)CFBridgingRetain(self));
 	
 	_keyboard = Keyboard::Create();
-	_keyboard->SetCallback(&onUserInputEvent, (void*)CFBridgingRetain(self));
+	_keyboard->SetCallback(&onKeyboardInputEvent, (void*)CFBridgingRetain(self));
 	
 	return(self);
 }
 
-- (void)onUserInputEvent:(int)inputEvent
+- (void)onKeyboardInputEvent:(int)inputEvent
 {
-	float volume = [_model volume];
-	
-	switch(inputEvent)
-	{
-	case IInputSource::UserInputAction_VolumeUp:
-		volume += 1.f;
-		break;
-	case IInputSource::UserInputAction_VolumeDown:
-		volume -= 1.f;
-		break;
-	case IInputSource::UserInputAction_VolumeMute:
-		volume = -1.f;
-		break;
-	}
-	
-	[_model setVolume:volume];
+	[_model postInputEvent:@"key" value:inputEvent];
 }
 
-void onUserInputEvent(void* context, IInputSource* inputSource, unsigned int inputEvent)
+void onKeyboardInputEvent(void* context, IInputSource* inputSource, unsigned int inputEvent)
 {
 	UserInputController* s = (__bridge UserInputController*)context;	//note: _appleRemote owns the reference
 	
-	[s onUserInputEvent:inputEvent];
+	[s onKeyboardInputEvent:inputEvent];
+}
+
+- (void)onRemoteInputEvent:(int)inputEvent
+{
+	[_model postInputEvent:@"remote" value:inputEvent];
+}
+
+void onRemoteInputEvent(void* context, IInputSource* inputSource, unsigned int inputEvent)
+{
+	UserInputController* s = (__bridge UserInputController*)context;	//note: _appleRemote owns the reference
+	
+	[s onRemoteInputEvent:inputEvent];
 }
 
 @end
@@ -420,6 +330,7 @@ void onUserInputEvent(void* context, IInputSource* inputSource, unsigned int inp
 
 - (void)onDeviceStatusChange:(NSNotification*)notification
 {
+	[_detailItem setTitle:[_model deviceStatus]];
 }
 
 @end
@@ -527,7 +438,7 @@ NSString* presentDeviceModel(NSString* model)
 - (void)generateDeviceModelMenu
 {
 	[self generateOptionsForButton:[self deviceModelChooser]
-			fromOptions:[SettingsWindowController availableDeviceModels]
+			fromOptions:[Scripting availableScripts]
 			current:[_model deviceModel]
 			changeMethod:@selector(onDeviceModelChanged:)
 			presentMethod:&presentDeviceModel
@@ -666,18 +577,7 @@ NSString* presentSerialPort(NSString* portPath)
 
 - (void)onDeviceStatusChange:(NSNotification*)notification
 {
-	;
-}
-
-+ (NSArray*)availableDeviceModels
-{
-	NSArray* scriptFiles = [[NSBundle mainBundle] pathsForResourcesOfType:@"py" inDirectory:@"devices"];
-	//NSMutableArray* scriptFilePaths = [NSMutableArray arrayWithCapacity:[scriptFiles count]];
-	
-	//for(NSString* port in scriptFiles)
-	//	[scriptFilePaths addObject:[path stringByAppendingString:port]];
-	
-	return(scriptFiles);
+	[[self deviceStatus] setStringValue:[_model deviceStatus]];
 }
 
 

@@ -30,7 +30,7 @@ static void onBytesReady(CFFileDescriptorRef fdref, CFOptionFlags callBackTypes,
 	{
 		NSMutableData* data = [NSMutableData data];
 		unsigned char buffer[64];
-		size_t bytesRead;
+		ssize_t bytesRead;
 		while((bytesRead = read(fd, buffer, 64)) > 0)
 			[data appendBytes:buffer length:bytesRead];
 		
@@ -87,6 +87,7 @@ static void onBytesReady(CFFileDescriptorRef fdref, CFOptionFlags callBackTypes,
 {
 	if(_fdref != nil)
 	{
+		close(CFFileDescriptorGetNativeDescriptor(_fdref));
 		CFFileDescriptorInvalidate(_fdref);
 		CFRelease(_fdref);
 		_fdref = nil;
@@ -104,26 +105,27 @@ static void onBytesReady(CFFileDescriptorRef fdref, CFOptionFlags callBackTypes,
 
 - (void)write:(char const*)data length:(size_t)length
 {
-	int fd = CFFileDescriptorGetNativeDescriptor(_fdref);
-	write(fd, data, length);
+	if(_fdref != nil)
+	{
+		int fd = CFFileDescriptorGetNativeDescriptor(_fdref);
+		write(fd, data, length);
+	}
 }
 - (void)write:(NSData*)data
 {
-	int fd = CFFileDescriptorGetNativeDescriptor(_fdref);
-	unsigned char buffer[64];
-	size_t length = [data length];
-	while(length > 0)
+	if(_fdref != nil)
 	{
-		size_t chunkSize = (length > 64)? 64 : length;
-		[data getBytes:buffer length:chunkSize];
-		write(fd, buffer, chunkSize);
-		length -= chunkSize;
+		int fd = CFFileDescriptorGetNativeDescriptor(_fdref);
+		unsigned char buffer[64];
+		size_t length = [data length];
+		while(length > 0)
+		{
+			size_t chunkSize = (length > 64)? 64 : length;
+			[data getBytes:buffer length:chunkSize];
+			write(fd, buffer, chunkSize);
+			length -= chunkSize;
+		}
 	}
-}
-
-- (void)invokeCallback:(NSData*)data
-{
-	
 }
 
 @end
