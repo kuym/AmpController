@@ -26,4 +26,4 @@ that you can control with a serial port, though it's up to you to write the simp
 * Baud rates are always 9600,8n1.  I will fix this imminently.
 * Script paths are absolute. I will fix this too.
 * No enable/disable control, you have to quit the app. I'll add a checkbox on the status item menu.
-* [Possibly other bugs](issues)
+* [Possibly other bugs](../../issues)
