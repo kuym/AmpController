@@ -1,10 +1,12 @@
 print("Denon");
 
-muted = false;
-buffer = "";
-volume = 0;
-volumeMax = 0;
-volumeStep = 3;
+function init()
+	muted = false;
+	buffer = "";
+	volume = 0;
+	volumeMax = 0;
+	volumeStep = 3;
+end
 
 function parseVolumeLevel(str)
 
@@ -57,6 +59,13 @@ function onEvent(event, value)
 
 	elseif(event == "serial") then
 	
+		if(value == "") then
+			print("disconnected.");
+			setStatus("Denon AVR-3806 disconnected.");
+			init();
+			return;
+		end
+
 		buffer = buffer .. value;
 		
 		--try to parse the message
@@ -122,6 +131,8 @@ function onEvent(event, value)
 
 end
 
-serialWrite("MV?\r");
+--initialize here
+init();
+serialWrite("MV?\r");	--seed volume data by querying it
 
 setStatus("Denon AVR-3806 pending.");

@@ -38,9 +38,14 @@ static void onBytesReady(CFFileDescriptorRef fdref, CFOptionFlags callBackTypes,
 		if(([data length] == 0) && (bytesRead == -1))	//closed
 		{
 			[s close];
+			//post a data event with nil data meaning "closed"
+			[[NSNotificationCenter defaultCenter]	postNotificationName:@"data"
+													object:s
+													userInfo:[NSDictionary dictionaryWithObject:[NSData data] forKey:@"data"]];
 			return;
 		}
 		
+		//post a regluar data event
 		[[NSNotificationCenter defaultCenter]	postNotificationName:@"data"
 												object:s
 												userInfo:[NSDictionary dictionaryWithObject:data forKey:@"data"]];

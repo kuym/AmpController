@@ -276,7 +276,10 @@ char const*		readScriptCallback(lua_State* L, void* context, size_t* outSize)
 		lua_getglobal(_luaState, "onEvent");
 		
 		lua_pushstring(_luaState, "serial");
-		lua_pushlstring(_luaState, [d bytes], [d length]);
+		if([d length] == 0)
+			lua_pushstring(_luaState, "");
+		else
+			lua_pushlstring(_luaState, [d bytes], [d length]);
 		
 		if(lua_pcall(_luaState, 2, 0, 0) != 0)
 		{
