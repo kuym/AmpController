@@ -6,11 +6,13 @@
 {
 @private
 	NSString*		_deviceStatus;
+	int				_baud;
 }
 
 - (id)init
 {
 	_deviceStatus = @"Disconnected";
+	_baud = 9600;
 	return(self);
 }
 
@@ -76,6 +78,18 @@
 	[[NSUserDefaults standardUserDefaults] setObject:value forKey:@"serialport"];
 	
 	[self change:@"serialPort" on:self];
+}
+
+- (int)baudRate
+{
+	return(_baud);
+}
+
+- (void)setBaudRate:(int)baud
+{
+	_baud = baud;
+	
+	[self change:@"baudRate" on:self];
 }
 
 - (NSString*)deviceModel

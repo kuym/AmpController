@@ -144,8 +144,8 @@ typedef enum
 	[_model onChanged:@"autostart" call:@selector(onUpdateAutoStart:) on:self];
 	
 	[_model onChanged:@"serialPort" call:@selector(onSerialPortChanged:) on:self];
+	[_model onChanged:@"baudRate" call:@selector(onBaudRateChanged:) on:self];
 	[_model onChanged:@"serialOutput" call:@selector(onSerialOutput:) on:self];
-	[self openSerialPort:[_model serialPort] baudRate:9600];	//@@script controlled baud
 
 	[[[NSWorkspace sharedWorkspace] notificationCenter] addObserver:self selector:@selector(onSystemWillSleep:) name:NSWorkspaceWillSleepNotification object:nil];
 	[[[NSWorkspace sharedWorkspace] notificationCenter] addObserver:self selector:@selector(onSystemDidWake:) name:NSWorkspaceDidWakeNotification object:nil];
@@ -228,7 +228,22 @@ typedef enum
 		[_serialPort unbindListener:self];
 	}
 	
-	[self openSerialPort:[_model serialPort] baudRate:9600];	//@@script controlled baud
+	[self openSerialPort:[_model serialPort] baudRate:[_model baudRate]];
+	//poke script, let it reinitialize if necessary
+	[_model postGenericEvent:@"init" value:@"serialPort"];
+}
+
+- (void)onBaudRateChanged:(NSNotification*)notification
+{
+	if(_serialPort != nil)
+	{
+		[_serialPort close];
+		[_serialPort unbindListener:self];
+	}
+	
+	[self openSerialPort:[_model serialPort] baudRate:[_model baudRate]];
+	
+	//no script event because baud rate changes are currently script-initiated only
 }
 
 - (void)onSerialInput:(NSNotification*)notification
@@ -369,6 +384,15 @@ void onRemoteInputEvent(void* context, IInputSource* inputSource, unsigned int i
 - (void)showWindow:(id)sender
 {
 	[super showWindow:sender];
+	
+	if([self window] != nil)
+	{
+		// set initial dropdown/popup state
+		[self generateSerialPortMenu];
+		
+		// set initial device model state
+		[self generateDeviceModelMenu];
+	}
 }
 
 - (void)awakeFromNib

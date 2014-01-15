@@ -112,6 +112,23 @@ int		luaSetStatus(lua_State* L)
 	return(0);
 }
 
+int		luaSetSerialBaud(lua_State* L)
+{
+	int n = lua_gettop(L);
+	if((n < 1) || !lua_isnumber(L, 1))
+	{
+		lua_pushstring(L, "setStatus must be called with an integer argument");
+		return(lua_error(L));	// longjmps, doesn't actually return
+	}
+	
+	int baud = (int)lua_tointeger(L, 1);
+	
+	Scripting* s = (__bridge Scripting*)lua_touserdata(L, lua_upvalueindex(1));
+	[s setBaudRate:baud];
+	
+	return(0);
+}
+
 int		luaSerialWrite(lua_State* L)
 {
 	int n = lua_gettop(L);
@@ -156,6 +173,13 @@ char const*		readScriptCallback(lua_State* L, void* context, size_t* outSize)
 	}
 }
 
+void	addGlobalMethod(lua_State* L, void* context, char const* name, lua_CFunction fn)
+{
+	lua_pushlightuserdata(L, context);
+	lua_pushcclosure(L, fn, 1);
+	lua_setglobal(L, name);
+}
+
 - (BOOL)loadLuaScript:(NSString*)scriptPath
 {
 	if(_luaState != 0)
@@ -179,17 +203,10 @@ char const*		readScriptCallback(lua_State* L, void* context, size_t* outSize)
 	luaL_openlibs(_luaState);	//load default libraries
 	lua_gc(_luaState, LUA_GCRESTART, 0);
 	
-	lua_pushlightuserdata(_luaState, (__bridge void*)self);
-	lua_pushcclosure(_luaState, &luaPrint, 1);
-	lua_setglobal(_luaState, "print");
-	
-	lua_pushlightuserdata(_luaState, (__bridge void*)self);
-	lua_pushcclosure(_luaState, &luaSetStatus, 1);
-	lua_setglobal(_luaState, "setStatus");
-	
-	lua_pushlightuserdata(_luaState, (__bridge void*)self);
-	lua_pushcclosure(_luaState, &luaSerialWrite, 1);
-	lua_setglobal(_luaState, "serialWrite");
+	addGlobalMethod(_luaState, (__bridge void*)self, "print", &luaPrint);
+	addGlobalMethod(_luaState, (__bridge void*)self, "setStatus", &luaSetStatus);
+	addGlobalMethod(_luaState, (__bridge void*)self, "setSerialBaud", &luaSetSerialBaud);
+	addGlobalMethod(_luaState, (__bridge void*)self, "serialWrite", &luaSerialWrite);
 	
 	ScriptLoadClosure* closure = (ScriptLoadClosure*)malloc(sizeof(ScriptLoadClosure));
 	closure->file = file;
@@ -260,6 +277,11 @@ char const*		readScriptCallback(lua_State* L, void* context, size_t* outSize)
 - (void)setStatus:(NSString*)value
 {
 	[_model setDeviceStatus:value];
+}
+
+- (void)setBaudRate:(int)baud
+{
+	[_model setBaudRate:baud];
 }
 
 - (void)serialWrite:(NSData*)data

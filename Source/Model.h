@@ -21,6 +21,9 @@
 - (NSString*)serialPort;
 - (void)setSerialPort:(NSString*)value;
 
+- (int)baudRate;
+- (void)setBaudRate:(int)baud;
+
 - (NSString*)deviceModel;
 - (void)setDeviceModel:(NSString*)value;
 

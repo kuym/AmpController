@@ -35,7 +35,12 @@ end
 
 function onEvent(event, value)
 
-	if(event == "key") then
+	if(event == "init") then
+		
+		print("init:", value);
+		init();
+
+	elseif(event == "key") then
 
 		if(value == 11) then		--volume down
 			print("volume down key");
@@ -133,6 +138,8 @@ end
 
 --initialize here
 init();
+setSerialBaud(9600);
+
 serialWrite("MV?\r");	--seed volume data by querying it
 
 setStatus("Denon AVR-3806 pending.");
