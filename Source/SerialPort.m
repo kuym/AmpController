@@ -35,6 +35,11 @@ static void onBytesReady(CFFileDescriptorRef fdref, CFOptionFlags callBackTypes,
 			[data appendBytes:buffer length:bytesRead];
 		
 		SerialPort* s = (__bridge SerialPort*)info;
+		if(([data length] == 0) && (bytesRead == -1))	//closed
+		{
+			[s close];
+			return;
+		}
 		
 		[[NSNotificationCenter defaultCenter]	postNotificationName:@"data"
 												object:s

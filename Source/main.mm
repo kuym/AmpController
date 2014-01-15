@@ -393,8 +393,9 @@ void onRemoteInputEvent(void* context, IInputSource* inputSource, unsigned int i
 
 NSString* presentDeviceModel(NSString* model)
 {
-	NSArray* pathComponents = [model pathComponents];
-	return([pathComponents objectAtIndex:([pathComponents count] - 1)]);
+	//NSArray* pathComponents = [model pathComponents];
+	//return([pathComponents objectAtIndex:([pathComponents count] - 1)]);
+	return(model);
 }
 
 - (IBAction)onSerialPortChanged:(id)sender

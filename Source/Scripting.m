@@ -16,11 +16,19 @@
 
 + (NSArray*)availableScripts;
 {
-	NSArray* scriptFiles = [[NSBundle mainBundle] pathsForResourcesOfType:@"lua" inDirectory:@"devices"];
-	//NSMutableArray* scriptFilePaths = [NSMutableArray arrayWithCapacity:[scriptFiles count]];
+	//list all .lua files in devices/ in the bundle resources
+	NSArray* scriptFilePaths = [[NSBundle mainBundle] pathsForResourcesOfType:@"lua" inDirectory:@"devices"];
+	NSMutableArray* scriptFiles = [NSMutableArray arrayWithCapacity:[scriptFilePaths count]];
 	
-	//for(NSString* port in scriptFiles)
-	//	[scriptFilePaths addObject:[path stringByAppendingString:port]];
+	//and transform them from /long/absolute/path/to/bundle/resources/devices/lemon.lua => lemon
+	for(NSString* filePath in scriptFilePaths)
+	{
+		NSArray* pathComponents = [filePath pathComponents];
+		NSString* name = [pathComponents objectAtIndex:([pathComponents count] - 1)];
+		NSString* extension = [name pathExtension];
+
+		[scriptFiles addObject:[name substringToIndex:([name length] - [extension length] - 1)]];
+	}
 	
 	return(scriptFiles);
 }
@@ -44,7 +52,8 @@
 - (void)onScriptChanged:(NSNotification*)notification
 {
 	[_model setDeviceStatus:@"(loading script)"];
-	[self loadLuaScript:[_model deviceModel]];
+	
+	[self loadLuaScript:[[NSBundle mainBundle] pathForResource:[_model deviceModel] ofType:@"lua" inDirectory:@"devices"]];
 }
 
 
@@ -158,7 +167,7 @@ char const*		readScriptCallback(lua_State* L, void* context, size_t* outSize)
 	if(file == 0)
 	{
 		[self unloadScript];
-		printf("Unable to load script file");
+		printf("Unable to load script file\n");
 		[_model setDeviceStatus:@"(could not load script)"];
 		return(NO);
 	}
