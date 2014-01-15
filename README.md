@@ -37,8 +37,5 @@ implement **asynchronous serial networking** (just take Serialport.m/.h) integra
 [**Creative Commons SA-BY-3.0**](http://creativecommons.org/licenses/by-sa/3.0/us/) - the Lua library contained within has [its own license](http://www.lua.org/license.html).
 
 ## Known limitations
-* Baud rates are always 9600,8n1.  I will fix this imminently.
-* Script paths are absolute. I will fix this too.
 * No enable/disable control, you have to quit the app. I'll add a checkbox on the status item menu.
-* Handling of changing script and/or changing serial port needs to result in more consistent behaviour.
 * [Possibly other bugs](../../issues)
