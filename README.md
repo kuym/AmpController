@@ -34,7 +34,7 @@ implement **asynchronous serial networking** (just take Serialport.m/.h) integra
 **Alpha** - Feature-complete and works correctly, may have bugs.
 
 ## License
-[**Creative Commons SA-BY-3.0 **](http://creativecommons.org/licenses/by-sa/3.0/us/) - the Lua library contained within has [its own license](http://www.lua.org/license.html).
+[**Creative Commons SA-BY-3.0**](http://creativecommons.org/licenses/by-sa/3.0/us/) - the Lua library contained within has [its own license](http://www.lua.org/license.html).
 
 ## Known limitations
 * Baud rates are always 9600,8n1.  I will fix this imminently.
