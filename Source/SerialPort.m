@@ -3,6 +3,8 @@
 #include <Cocoa/Cocoa.h>
 #include <termios.h>
 
+static BOOL gDebugSerial = NO;
+
 @implementation SerialPort
 {
 @private
@@ -32,12 +34,26 @@ static void onBytesReady(CFFileDescriptorRef fdref, CFOptionFlags callBackTypes,
 		unsigned char buffer[64];
 		ssize_t bytesRead;
 		while((bytesRead = read(fd, buffer, 64)) > 0)
+		{
+			if(gDebugSerial)
+			{
+				printf("[Serial] >> ");
+				for(int i = 0; i < bytesRead; i++)
+					printf("%02X ", buffer[i]);
+				printf(">>\n");
+			}
+			
 			[data appendBytes:buffer length:bytesRead];
+		}
 		
 		SerialPort* s = (__bridge SerialPort*)info;
 		if(([data length] == 0) && (bytesRead == -1))	//closed
 		{
 			[s close];
+			
+			if(gDebugSerial)
+				printf("[Serial] disconnected.\n");
+			
 			//post a data event with nil data meaning "closed"
 			[[NSNotificationCenter defaultCenter]	postNotificationName:@"data"
 													object:s
@@ -56,6 +72,9 @@ static void onBytesReady(CFFileDescriptorRef fdref, CFOptionFlags callBackTypes,
 
 - (id)initWithFile:(char const*)ttyName baudRate:(unsigned int)baud
 {
+	if(gDebugSerial)
+		printf("[Serial] Opening \"%s\" @ %i baud\n", ttyName, baud);
+	
 	int ttyDescriptor = open(ttyName, O_RDWR | O_NONBLOCK);
 	
 	if(ttyDescriptor < 0)
@@ -97,6 +116,9 @@ static void onBytesReady(CFFileDescriptorRef fdref, CFOptionFlags callBackTypes,
 {
 	if(_fdref != nil)
 	{
+		if(gDebugSerial)
+			printf("[Serial] closed.\n");
+		
 		close(CFFileDescriptorGetNativeDescriptor(_fdref));
 		CFFileDescriptorInvalidate(_fdref);
 		CFRelease(_fdref);
@@ -118,6 +140,13 @@ static void onBytesReady(CFFileDescriptorRef fdref, CFOptionFlags callBackTypes,
 	if(_fdref != nil)
 	{
 		int fd = CFFileDescriptorGetNativeDescriptor(_fdref);
+		if(gDebugSerial)
+		{
+			printf("[Serial] << ");
+			for(int i = 0; i < length; i++)
+				printf("%02X ", data[i]);
+			printf("<<\n");
+		}
 		write(fd, data, length);
 	}
 }
@@ -132,6 +161,13 @@ static void onBytesReady(CFFileDescriptorRef fdref, CFOptionFlags callBackTypes,
 		{
 			size_t chunkSize = (length > 64)? 64 : length;
 			[data getBytes:buffer length:chunkSize];
+			if(gDebugSerial)
+			{
+				printf("[Serial] << ");
+				for(int i = 0; i < chunkSize; i++)
+					printf("%02X ", buffer[i]);
+				printf("<<\n");
+			}
 			write(fd, buffer, chunkSize);
 			length -= chunkSize;
 		}

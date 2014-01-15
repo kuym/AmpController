@@ -1,18 +1,25 @@
 print("Denon");
 
 function init()
+	initialized = false;
 	muted = false;
 	buffer = "";
 	volume = 0;
 	volumeMax = 0;
 	volumeStep = 3;
+	
+	serialWrite("PW?\r");
+
+	setStatus("Denon AVR-3806 pending.");
 end
 
 function parseVolumeLevel(str)
 
 	v = tonumber(str);
 	
-	if(v >= 100) then
+	if(v == 99) then
+		return(0);	--odd Denon design
+	elseif(v >= 100) then
 		return(v / 10);
 	else
 		return(v);
@@ -74,9 +81,13 @@ function onEvent(event, value)
 		buffer = buffer .. value;
 		
 		--try to parse the message
-		offset = string.find(buffer, "\r");
+		while(#buffer > 0) do
+			
+			offset = string.find(buffer, "\r");
 
-		if(offset ~= nil) then
+			if(offset == nil) then
+				break;
+			end
 
 			response = string.sub(buffer, 1, offset - 1);
 			buffer = string.sub(buffer, offset + 1);
@@ -97,10 +108,11 @@ function onEvent(event, value)
 					
 					reportedVolumeMax = parseVolumeLevel(string.sub(response, 6));
 					
-					if(reportedVolumeMax ~= volumeMax) then
+					if((reportedVolumeMax ~= volumeMax) and (reportedVolumeMax > 0)) then
 						volumeMax = reportedVolumeMax;
-						setStatus("Denon AVR-3806 ok, volume " .. currentVolume());
 					end
+					
+					setStatus("Denon AVR-3806 ok, volume " .. currentVolume());
 
 				else
 					
@@ -109,10 +121,34 @@ function onEvent(event, value)
 					if((reportedVolume ~= nil) and (reportedVolume > 0) and (reportedVolume < 100)) then
 						volume = reportedVolume;
 						
-						setStatus("Denon AVR-3806 ok, volume " .. currentVolume());
+						if(volumeMax > 0) then
+							setStatus("Denon AVR-3806 ok, volume " .. currentVolume());
+						else
+							print("don't know max volume");
+						end
 					end
 
 				end
+			
+			elseif(string.sub(response, 1, 2) == "PW") then
+
+				if(string.sub(response, 3, 5) == "ON") then
+
+					initialized = true;
+					serialWrite("MV?\r");	--seed volume data by querying it
+
+				elseif(string.sub(response, 3, 10) == "STANDBY") then
+				
+					if(not initialized) then
+						initialized = true;
+						serialWrite("PWON\r");
+						setStatus("Denon AVR-3806 powering on.");
+					else
+						setStatus("Denon AVR-3806 off.");
+					end
+
+				end
+			
 			end
 
 		end
@@ -137,9 +173,5 @@ function onEvent(event, value)
 end
 
 --initialize here
-init();
 setSerialBaud(9600);
-
-serialWrite("MV?\r");	--seed volume data by querying it
-
-setStatus("Denon AVR-3806 pending.");
+init();
