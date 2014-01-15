@@ -5,7 +5,7 @@ A Mac Menu Bar widget to control your RS232-connected stereo receiver using your
 
 ![Mac Menu Bar preview](../master/Docs/menubar.png?raw=true)
 
-=== Purpose
+## Purpose
 **Given that** I have a Mac Mini connected to my TV and to my stereo receiver ([what's a stereo receiver?](https://en.wikipedia.org/wiki/File:HK_AVR_245.jpg)).
 The Mac connects to the receiver via an [SPDIF optical fibre](https://en.wikipedia.org/wiki/SPDIF) and has an [RS-232](https://en.wikipedia.org/wiki/RS-232)
 serial connector for control input/output.
