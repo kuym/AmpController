@@ -147,6 +147,9 @@ typedef enum
 	[_model onChanged:@"serialOutput" call:@selector(onSerialOutput:) on:self];
 	[self openSerialPort:[_model serialPort] baudRate:9600];	//@@script controlled baud
 
+	[[[NSWorkspace sharedWorkspace] notificationCenter] addObserver:self selector:@selector(onSystemWillSleep:) name:NSWorkspaceWillSleepNotification object:nil];
+	[[[NSWorkspace sharedWorkspace] notificationCenter] addObserver:self selector:@selector(onSystemDidWake:) name:NSWorkspaceDidWakeNotification object:nil];
+	
 	_scripting = [[Scripting alloc] initWithModel:_model];
 }
 
@@ -205,6 +208,16 @@ typedef enum
 {
 	_serialPort = [[SerialPort alloc] initWithFile:[devicePath cStringUsingEncoding:NSUTF8StringEncoding] baudRate:baud];	// @@make script-controlled
 	[_serialPort onData:@selector(onSerialInput:) target:self];
+}
+
+- (void)onSystemWillSleep:(NSNotification*)notification
+{
+	[_model postGenericEvent:@"power" value:@"sleep"];
+}
+
+- (void)onSystemDidWake:(NSNotification*)notification
+{
+	[_model postGenericEvent:@"power" value:@"wake"];
 }
 
 - (void)onSerialPortChanged:(NSNotification*)notification

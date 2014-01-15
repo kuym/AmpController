@@ -36,14 +36,15 @@
 	[_model onChanged:@"input" call:@selector(onInputEvent:) on:self];
 	[_model onChanged:@"serialInput" call:@selector(onSerialInput:) on:self];
 	
+	[_model onChanged:@"event" call:@selector(onGenericEvent:) on:self];
+	
 	return(self);
 }
 
 - (void)onScriptChanged:(NSNotification*)notification
 {
 	[_model setDeviceStatus:@"(loading script)"];
-	if([self loadLuaScript:[_model deviceModel]] == NO)
-		[_model setDeviceStatus:@"(script failed)"];
+	[self loadLuaScript:[_model deviceModel]];
 }
 
 
@@ -157,6 +158,8 @@ char const*		readScriptCallback(lua_State* L, void* context, size_t* outSize)
 	if(file == 0)
 	{
 		[self unloadScript];
+		printf("Unable to load script file");
+		[_model setDeviceStatus:@"(could not load script)"];
 		return(NO);
 	}
 	
@@ -202,6 +205,7 @@ char const*		readScriptCallback(lua_State* L, void* context, size_t* outSize)
 			break;
 		}
 		printf("Unable to load the lua script, error: %s\n", reason);
+		[_model setDeviceStatus:@"(script syntax/memory error)"];
 		[self unloadScript];
 		return(NO);
 	}
@@ -209,10 +213,13 @@ char const*		readScriptCallback(lua_State* L, void* context, size_t* outSize)
 	if(lua_pcall(_luaState, 0, 0, 0) != 0)
 	{
 		if(lua_isstring(_luaState, -1))
+		{
 			printf("Error: %s \n", lua_tolstring(_luaState, -1, 0));
+		}
 		else
 			printf("Other error.\n");
 		
+		[_model setDeviceStatus:@"(script runtime error)"];
 		[self unloadScript];
 	}
 	
@@ -261,6 +268,28 @@ char const*		readScriptCallback(lua_State* L, void* context, size_t* outSize)
 		
 		lua_pushstring(_luaState, "serial");
 		lua_pushlstring(_luaState, [d bytes], [d length]);
+		
+		if(lua_pcall(_luaState, 2, 0, 0) != 0)
+		{
+			if(lua_isstring(_luaState, -1))
+				printf("Error: %s \n", lua_tolstring(_luaState, -1, 0));
+			else
+				printf("Other error.\n");
+		}
+	}
+}
+
+- (void)onGenericEvent:(NSNotification*)notification
+{
+	if(_luaState != 0)
+	{
+		NSString* event = [[notification userInfo] objectForKey:@"event"];
+		NSString* value = [[notification userInfo] objectForKey:@"value"];
+		
+		lua_getglobal(_luaState, "onEvent");
+		
+		lua_pushstring(_luaState, [event cStringUsingEncoding:NSUTF8StringEncoding]);
+		lua_pushstring(_luaState, [value cStringUsingEncoding:NSUTF8StringEncoding]);
 		
 		if(lua_pcall(_luaState, 2, 0, 0) != 0)
 		{

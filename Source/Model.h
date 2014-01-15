@@ -9,7 +9,9 @@
 - (void)onChanged:(NSString*)propertyName call:(SEL)method on:(id)target;
 - (void)unbindChange:(NSString*)propertyName on:(id)target;
 
+- (void)postGenericEvent:(NSString*)event value:(NSString*)value;
 - (void)postInputEvent:(NSString*)event value:(unsigned int)value;
+
 - (void)postSerialInput:(NSData*)data;
 - (void)postSerialOutput:(NSData*)data;
 

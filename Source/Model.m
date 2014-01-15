@@ -35,6 +35,10 @@
 	[[NSNotificationCenter defaultCenter] postNotificationName:propertyName object:target userInfo:userInfo];
 }
 
+- (void)postGenericEvent:(NSString*)event value:(NSString*)value;
+{
+	[self change:@"event" on:self withInfo:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", value, @"value", nil]];
+}
 
 - (void)postInputEvent:(NSString*)event value:(unsigned int)value
 {

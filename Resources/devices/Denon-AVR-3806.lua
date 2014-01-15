@@ -103,6 +103,21 @@ function onEvent(event, value)
 
 		end
 
+	elseif(event == "power") then
+
+		if(value == "wake") then
+
+			serialWrite("PWON\r");
+
+		elseif(value == "sleep") then
+
+			serialWrite("PWSTANDBY\r");
+
+		end
+
+	else
+		print("Unhandled event", event, value);
+
 	end
 
 end
