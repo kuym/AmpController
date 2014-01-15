@@ -28,7 +28,7 @@ This utility is compatible with any serial port or Bluetooth, as long as it has 
 any stereo receiver that you can control with a serial port, though it's up to you to write the simple Lua script to control it.
 
 This codebase may also serve as a useful reference in how to **capture special keyboard button presses**, receive **Apple Remote button presses**,
-implement **asynchronous serial networking** (just take Serialport.m/.h) integrate **Lua in a Cocoa app** and more.
+implement **asynchronous serial ports in Cocoa** (just take Serialport.m/.h), integrate **Lua in a Cocoa app** and more.
 
 ## Status
 **Alpha** - Feature-complete and works correctly, may have bugs.
