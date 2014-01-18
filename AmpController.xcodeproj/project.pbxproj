@@ -52,10 +52,20 @@
 		E8FD18CC1884A479008D18B4 /* lundump.c in Sources */ = {isa = PBXBuildFile; fileRef = E8FD187D1884A34D008D18B4 /* lundump.c */; };
 		E8FD18CD1884A479008D18B4 /* lvm.c in Sources */ = {isa = PBXBuildFile; fileRef = E8FD187F1884A34D008D18B4 /* lvm.c */; };
 		E8FD18CE1884A479008D18B4 /* lzio.c in Sources */ = {isa = PBXBuildFile; fileRef = E8FD18811884A34D008D18B4 /* lzio.c */; };
-		E8FD18CF1884A48E008D18B4 /* liblua-5.2.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = E8FD18AB1884A3C8008D18B4 /* liblua-5.2.3.dylib */; };
+		E8FD18CF1884A48E008D18B4 /* liblua-5.2.3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E8FD18AB1884A3C8008D18B4 /* liblua-5.2.3.a */; };
 		E8FD18D21884A4FC008D18B4 /* Scripting.m in Sources */ = {isa = PBXBuildFile; fileRef = E8FD18D11884A4FC008D18B4 /* Scripting.m */; };
 		E8FD18D51885DBBB008D18B4 /* Model.m in Sources */ = {isa = PBXBuildFile; fileRef = E8FD18D41885DBBB008D18B4 /* Model.m */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E8FD18D6188864C5008D18B4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E85192EE18826A5400318F30 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E8FD18AA1884A3C8008D18B4;
+			remoteInfo = "lua-5.2.3";
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		E802A5D518827D4100FB3CDC /* AppleRemote.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AppleRemote.cpp; path = Source/AppleRemote.cpp; sourceTree = SOURCE_ROOT; };
@@ -138,7 +148,7 @@
 		E8FD18811884A34D008D18B4 /* lzio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lzio.c; sourceTree = "<group>"; };
 		E8FD18821884A34D008D18B4 /* lzio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lzio.h; sourceTree = "<group>"; };
 		E8FD18831884A34D008D18B4 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
-		E8FD18AB1884A3C8008D18B4 /* liblua-5.2.3.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = "liblua-5.2.3.dylib"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E8FD18AB1884A3C8008D18B4 /* liblua-5.2.3.a */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = "liblua-5.2.3.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E8FD18D01884A4FC008D18B4 /* Scripting.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Scripting.h; path = Source/Scripting.h; sourceTree = SOURCE_ROOT; };
 		E8FD18D11884A4FC008D18B4 /* Scripting.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Scripting.m; path = Source/Scripting.m; sourceTree = SOURCE_ROOT; };
 		E8FD18D31885DBBB008D18B4 /* Model.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Model.h; path = Source/Model.h; sourceTree = SOURCE_ROOT; };
@@ -150,7 +160,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E8FD18CF1884A48E008D18B4 /* liblua-5.2.3.dylib in Frameworks */,
+				E8FD18CF1884A48E008D18B4 /* liblua-5.2.3.a in Frameworks */,
 				E851932E18826CC500318F30 /* IOKit.framework in Frameworks */,
 				E85192FA18826A5400318F30 /* Cocoa.framework in Frameworks */,
 			);
@@ -196,7 +206,7 @@
 			isa = PBXGroup;
 			children = (
 				E85192F618826A5400318F30 /* AmpController.app */,
-				E8FD18AB1884A3C8008D18B4 /* liblua-5.2.3.dylib */,
+				E8FD18AB1884A3C8008D18B4 /* liblua-5.2.3.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -340,6 +350,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				E8FD18D7188864C5008D18B4 /* PBXTargetDependency */,
 			);
 			name = AmpController;
 			productName = AmpController;
@@ -360,7 +371,7 @@
 			);
 			name = "lua-5.2.3";
 			productName = "lua-5.2.3";
-			productReference = E8FD18AB1884A3C8008D18B4 /* liblua-5.2.3.dylib */;
+			productReference = E8FD18AB1884A3C8008D18B4 /* liblua-5.2.3.a */;
 			productType = "com.apple.product-type.library.dynamic";
 		};
 /* End PBXNativeTarget section */
@@ -462,6 +473,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E8FD18D7188864C5008D18B4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E8FD18AA1884A3C8008D18B4 /* lua-5.2.3 */;
+			targetProxy = E8FD18D6188864C5008D18B4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		E851932518826A5400318F30 /* Debug */ = {
@@ -569,12 +588,14 @@
 		E8FD18AD1884A3C8008D18B4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = lib;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"LUA_USE_MKSTEMP=1",
 					"$(inherited)",
 				);
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -582,8 +603,10 @@
 		E8FD18AE1884A3C8008D18B4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				EXECUTABLE_EXTENSION = a;
 				EXECUTABLE_PREFIX = lib;
 				GCC_PREPROCESSOR_DEFINITIONS = "LUA_USE_MKSTEMP=1";
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

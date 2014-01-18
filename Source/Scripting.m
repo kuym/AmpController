@@ -51,9 +51,12 @@
 
 - (void)onScriptChanged:(NSNotification*)notification
 {
-	[_model setDeviceStatus:@"(loading script)"];
-	
-	[self loadLuaScript:[[NSBundle mainBundle] pathForResource:[_model deviceModel] ofType:@"lua" inDirectory:@"devices"]];
+	if([_model deviceModel] != nil)
+	{
+		[_model setDeviceStatus:@"(loading script)"];
+		
+		[self loadLuaScript:[[NSBundle mainBundle] pathForResource:[_model deviceModel] ofType:@"lua" inDirectory:@"devices"]];
+	}
 }
 
 

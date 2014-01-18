@@ -11,7 +11,7 @@
 
 - (id)init
 {
-	_deviceStatus = @"Disconnected";
+	_deviceStatus = @"(no model selected)";
 	_baud = 9600;
 	return(self);
 }

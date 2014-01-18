@@ -325,7 +325,7 @@ void onRemoteInputEvent(void* context, IInputSource* inputSource, unsigned int i
 	//build a menu
 	NSMenu* menu = [[NSMenu alloc] initWithTitle:@"AmpController"];
 	int index = 0;
-	_detailItem = [menu insertItemWithTitle:@"Disconnected" action:nil keyEquivalent:@"" atIndex:index++];
+	_detailItem = [menu insertItemWithTitle:[_model deviceStatus] action:nil keyEquivalent:@"" atIndex:index++];
 	[menu insertItem:[NSMenuItem separatorItem] atIndex:index++];
 	[[menu insertItemWithTitle:@"Settings..." action:@selector(showSettings:) keyEquivalent:@"" atIndex:index++] setTarget:self];
 	[[menu insertItemWithTitle:@"Quit" action:@selector(quit:) keyEquivalent:@"" atIndex:index++] setTarget:self];
