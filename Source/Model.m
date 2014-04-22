@@ -6,6 +6,8 @@
 {
 @private
 	NSString*		_deviceStatus;
+	float			_deviceVolume;
+	int				_deviceMuted;
 	int				_baud;
 }
 
@@ -13,6 +15,9 @@
 {
 	_deviceStatus = @"(no model selected)";
 	_baud = 9600;
+	_deviceVolume = 0.f;
+	_deviceMuted = 0;
+	
 	return(self);
 }
 
@@ -42,14 +47,21 @@
 	[self change:@"event" on:self withInfo:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", value, @"value", nil]];
 }
 
-- (void)postInputEvent:(NSString*)event value:(unsigned int)value
+- (void)postGenericEvent:(NSString*)event floatValue:(float)value;
 {
-	[self change:@"input" on:self withInfo:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", [NSNumber numberWithUnsignedInt:value], @"value", nil]];
+	[self change:@"event" on:self withInfo:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", [NSNumber numberWithFloat:value], @"value", nil]];
 }
+
+- (void)postGenericEvent:(NSString*)event intValue:(unsigned int)value
+{
+	[self change:@"event" on:self withInfo:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", [NSNumber numberWithUnsignedInt:value], @"value", nil]];
+}
+
 - (void)postSerialInput:(NSData*)data
 {
 	[self change:@"serialInput" on:self withInfo:[NSDictionary dictionaryWithObject:data forKey:@"data"]];
 }
+
 - (void)postSerialOutput:(NSData*)data
 {
 	[self change:@"serialOutput" on:self withInfo:[NSDictionary dictionaryWithObject:data forKey:@"data"]];
@@ -114,6 +126,30 @@
 	_deviceStatus = value;
 	
 	[self change:@"deviceStatus" on:self];
+}
+
+- (float)deviceVolume
+{
+	return(_deviceVolume);
+}
+
+- (void)setDeviceVolume:(float)value
+{
+	_deviceVolume = value;
+	
+	[self change:@"deviceVolume" on:self];
+}
+
+- (int)deviceMuted
+{
+	return(_deviceMuted);
+}
+
+- (void)setDeviceMuted:(int)value
+{
+	_deviceMuted = value;
+	
+	[self change:@"deviceMuted" on:self];
 }
 
 @end

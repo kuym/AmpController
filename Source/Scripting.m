@@ -41,7 +41,6 @@
 	[self onScriptChanged:nil];
 	[_model onChanged:@"deviceModel" call:@selector(onScriptChanged:) on:self];
 	
-	[_model onChanged:@"input" call:@selector(onInputEvent:) on:self];
 	[_model onChanged:@"serialInput" call:@selector(onSerialInput:) on:self];
 	
 	[_model onChanged:@"event" call:@selector(onGenericEvent:) on:self];
@@ -94,6 +93,40 @@ int		luaPrint(lua_State* L)
 	}
 	if(n > 0)
 		printf("\n");
+	return(0);
+}
+
+int		luaSetVolume(lua_State* L)
+{
+	int n = lua_gettop(L);
+	if((n < 1) || !lua_isnumber(L, 1))
+	{
+		lua_pushstring(L, "setVolume must be called with a numeric argument");
+		return(lua_error(L));	// longjmps, doesn't actually return
+	}
+	
+	float volume = lua_tonumber(L, 1);
+	
+	Scripting* s = (__bridge Scripting*)lua_touserdata(L, lua_upvalueindex(1));
+	[s setVolume:volume];
+	
+	return(0);
+}
+
+int		luaSetMuted(lua_State* L)
+{
+	int n = lua_gettop(L);
+	if((n < 1) || !lua_isnumber(L, 1))
+	{
+		lua_pushstring(L, "setMuted must be called with a numeric argument, either 0 or 1");
+		return(lua_error(L));	// longjmps, doesn't actually return
+	}
+	
+	int muted = (int)lua_tonumber(L, 1);
+	
+	Scripting* s = (__bridge Scripting*)lua_touserdata(L, lua_upvalueindex(1));
+	[s setMuted:muted];
+	
 	return(0);
 }
 
@@ -207,6 +240,8 @@ void	addGlobalMethod(lua_State* L, void* context, char const* name, lua_CFunctio
 	lua_gc(_luaState, LUA_GCRESTART, 0);
 	
 	addGlobalMethod(_luaState, (__bridge void*)self, "print", &luaPrint);
+	addGlobalMethod(_luaState, (__bridge void*)self, "setVolume", &luaSetVolume);
+	addGlobalMethod(_luaState, (__bridge void*)self, "setMuted", &luaSetMuted);
 	addGlobalMethod(_luaState, (__bridge void*)self, "setStatus", &luaSetStatus);
 	addGlobalMethod(_luaState, (__bridge void*)self, "setSerialBaud", &luaSetSerialBaud);
 	addGlobalMethod(_luaState, (__bridge void*)self, "serialWrite", &luaSerialWrite);
@@ -255,31 +290,19 @@ void	addGlobalMethod(lua_State* L, void* context, char const* name, lua_CFunctio
 	return(YES);
 }
 
-- (void)onInputEvent:(NSNotification*)notification
-{
-	if(_luaState != 0)
-	{
-		NSString* event = [[notification userInfo] objectForKey:@"event"];
-		unsigned int value = (unsigned int)[(NSNumber*)[[notification userInfo] objectForKey:@"value"] unsignedIntegerValue];
-		
-		lua_getglobal(_luaState, "onEvent");
-		
-		lua_pushstring(_luaState, [event cStringUsingEncoding:NSUTF8StringEncoding]);
-		lua_pushunsigned(_luaState, value);
-		
-		if(lua_pcall(_luaState, 2, 0, 0) != 0)
-		{
-			if(lua_isstring(_luaState, -1))
-				printf("Error: %s \n", lua_tolstring(_luaState, -1, 0));
-			else
-				printf("Other error.\n");
-		}
-	}
-}
-
 - (void)setStatus:(NSString*)value
 {
 	[_model setDeviceStatus:value];
+}
+
+- (void)setVolume:(float)value
+{
+	[_model setDeviceVolume:value];
+}
+
+- (void)setMuted:(int)value
+{
+	[_model setDeviceMuted:value];
 }
 
 - (void)setBaudRate:(int)baud
@@ -321,12 +344,28 @@ void	addGlobalMethod(lua_State* L, void* context, char const* name, lua_CFunctio
 	if(_luaState != 0)
 	{
 		NSString* event = [[notification userInfo] objectForKey:@"event"];
-		NSString* value = [[notification userInfo] objectForKey:@"value"];
 		
 		lua_getglobal(_luaState, "onEvent");
 		
 		lua_pushstring(_luaState, [event cStringUsingEncoding:NSUTF8StringEncoding]);
-		lua_pushstring(_luaState, [value cStringUsingEncoding:NSUTF8StringEncoding]);
+		
+		id value = [[notification userInfo] objectForKey:@"value"];
+		if([value isKindOfClass:[NSString class]])
+		{
+			lua_pushstring(_luaState, [value cStringUsingEncoding:NSUTF8StringEncoding]);
+		}
+		else if([value isKindOfClass:[NSNumber class]])
+		{
+			if(CFNumberIsFloatType((CFNumberRef)value))
+				lua_pushnumber(_luaState, (lua_Number)[value floatValue]);
+			else
+				lua_pushunsigned(_luaState, (unsigned int)[value unsignedIntegerValue]);
+		}
+		else
+		{
+			printf("Cannot pass an argument of this type to Lua.");
+			return;
+		}
 		
 		if(lua_pcall(_luaState, 2, 0, 0) != 0)
 		{

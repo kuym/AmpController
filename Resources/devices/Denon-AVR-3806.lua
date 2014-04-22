@@ -2,7 +2,7 @@ print("Denon");
 
 function init()
 	initialized = false;
-	muted = false;
+	muted = 0;
 	buffer = "";
 	volume = 0;
 	volumeMax = 0;
@@ -26,18 +26,29 @@ function parseVolumeLevel(str)
 	end
 end
 
+function formatVolume(value)
+	
+	if(value == 0) then
+		return("99");
+	else
+		value = math.floor(value * 2);	-- shift to 1/2 unit resolution
+		
+		if((value / 2) == math.floor(value / 2)) then
+			return(tostring(math.floor(value / 2)));		-- if even, "80"
+		else
+			return(tostring(math.floor(value / 2)) .. "5");	-- if odd, "825"
+		end
+	end
+end
+
 function currentVolume()
 	percentStr = tostring(math.floor(100 * volume / volumeMax)) .. "%";
 	
-	if(muted) then
+	if(muted == 1) then
 		return("muted " .. percentStr);
 	else
 		return(percentStr);
 	end
-end
-
-function formatVolume(value)
-	return(tostring(math.floor(value)));
 end
 
 function onEvent(event, value)
@@ -57,11 +68,15 @@ function onEvent(event, value)
 		elseif(value == 10) then	--volume up
 			print("volume up key");
 			--serialWrite("MVUP\r");
+			if(muted == 1) then
+				serialWrite("MUOFF\r");	-- special case: pressing volume-up should unmute if muted
+			end
+
 			serialWrite("MV" .. formatVolume(volume + volumeStep) .. "\r");
 
 		elseif(value == 12) then	--toggle mute
 			print("mute key");
-			if(muted) then
+			if(muted == 1) then
 				serialWrite("MUOFF\r");
 			else
 				serialWrite("MUON\r");
@@ -95,12 +110,16 @@ function onEvent(event, value)
 			print("Denon response:", response);
 			
 			if(response == "MUON") then		--mute on
-				muted = true;
+				muted = 1;
 				setStatus("Denon AVR-3806 ok, volume " .. currentVolume());
+				setVolume(volume / volumeMax);
+				setMuted(muted);
 
 			elseif(response == "MUOFF") then	--mute off
-				muted = false;
+				muted = 0;
 				setStatus("Denon AVR-3806 ok, volume " .. currentVolume());
+				setVolume(volume / volumeMax);
+				setMuted(muted);
 
 			elseif(string.sub(response, 1, 2) == "MV") then		--master volume report
 				
@@ -151,6 +170,25 @@ function onEvent(event, value)
 			
 			end
 
+		end
+
+	elseif(event == "volume") then
+		if(value > 1) then
+			value = 1;
+		end
+		if(value < 0) then
+			value = 0;
+		end
+		--if(volumeMax > 0) then
+			serialWrite("MV" .. formatVolume(volumeMax * value) .. "\r");
+		--end
+
+	elseif(event == "mute") then
+		print("muted = " .. tostring(muted) .. ", value = " .. tostring(value));
+		if(value == 1) then
+			serialWrite("MUON\r");
+		else
+			serialWrite("MUOFF\r");
 		end
 
 	elseif(event == "power") then

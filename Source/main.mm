@@ -65,6 +65,9 @@
 	AmpControllerModel*			_model;
 	
 	SettingsWindowController*	_settingsWindow;
+	
+	NSSlider*					_sliderView;
+	NSButton*					_muteView;
 }
 
 - (id)initWithModel:(AmpControllerModel*)model;
@@ -279,7 +282,7 @@ typedef enum
 
 - (void)onKeyboardInputEvent:(int)inputEvent
 {
-	[_model postInputEvent:@"key" value:inputEvent];
+	[_model postGenericEvent:@"key" intValue:inputEvent];
 }
 
 void onKeyboardInputEvent(void* context, IInputSource* inputSource, unsigned int inputEvent)
@@ -291,7 +294,7 @@ void onKeyboardInputEvent(void* context, IInputSource* inputSource, unsigned int
 
 - (void)onRemoteInputEvent:(int)inputEvent
 {
-	[_model postInputEvent:@"remote" value:inputEvent];
+	[_model postGenericEvent:@"remote" intValue:inputEvent];
 }
 
 void onRemoteInputEvent(void* context, IInputSource* inputSource, unsigned int inputEvent)
@@ -322,12 +325,43 @@ void onRemoteInputEvent(void* context, IInputSource* inputSource, unsigned int i
 	[_menubarView setImage:[NSImage imageNamed:@"menubarIcon"] forSlot:MenubarViewImageSlot_normal];
 	[_menubarView setImage:[NSImage imageNamed:@"menubarIconHighlighted"] forSlot:MenubarViewImageSlot_highlight];
 	
-	//build a menu
+	// build a menu
 	NSMenu* menu = [[NSMenu alloc] initWithTitle:@"AmpController"];
 	int index = 0;
 	_detailItem = [menu insertItemWithTitle:[_model deviceStatus] action:nil keyEquivalent:@"" atIndex:index++];
+	
+	// put a mute on/off checkbox and a slider to control the volume in the menu
+	_muteView = [[NSButton alloc] initWithFrame:NSMakeRect(10.f, 5.f, 80.f, 20.f)];
+	[_muteView setTitle:@"Mute"];
+	[[_muteView cell] setBezelStyle:NSRegularSquareBezelStyle];
+	[[_muteView cell] setButtonType:NSSwitchButton];
+	[_muteView setTarget:self];
+	[_muteView setAction:@selector(onMuteButtonChanged:)];
+	
+	_sliderView = [[NSSlider alloc] initWithFrame:NSMakeRect(70.f, 5.f, 100.f, 20.f)];
+	//[_sliderView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+	[_sliderView setMinValue:0.f];
+	[_sliderView setMaxValue:1.f];
+	[_sliderView setTarget:self];
+	[_sliderView setAction:@selector(onVolumeSliderChanged:)];
+	
+	NSView* volumeContainer = [[NSView alloc] initWithFrame:NSMakeRect(0.f, 0.f, 180.f, 30.f)];
+	[volumeContainer setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+
+	[volumeContainer addSubview:_muteView];
+	[volumeContainer addSubview:_sliderView];
+	
+	NSMenuItem* volumeItem = [[NSMenuItem alloc] init];
+	[volumeItem setView:volumeContainer];
+	
+	[menu insertItem:volumeItem atIndex:index++];
+	
+	// then a separator
 	[menu insertItem:[NSMenuItem separatorItem] atIndex:index++];
+	
+	// and finally two more options
 	[[menu insertItemWithTitle:@"Settings..." action:@selector(showSettings:) keyEquivalent:@"" atIndex:index++] setTarget:self];
+
 	[[menu insertItemWithTitle:@"Quit" action:@selector(quit:) keyEquivalent:@"" atIndex:index++] setTarget:self];
 	
 	[_menubarView setMenu:menu];
@@ -335,6 +369,13 @@ void onRemoteInputEvent(void* context, IInputSource* inputSource, unsigned int i
 	_settingsWindow = [[SettingsWindowController alloc] initWithModel:_model];
 	
 	[_model onChanged:@"deviceStatus" call:@selector(onDeviceStatusChange:) on:self];
+	[_model onChanged:@"deviceVolume" call:@selector(onDeviceVolumeChange:) on:self];
+	[_model onChanged:@"deviceMuted" call:@selector(onDeviceMuteChange:) on:self];
+	
+	if([_model deviceModel] == nil)
+		[_sliderView setEnabled:NO];
+	else
+		[_sliderView setEnabled:YES];
 	
 	return(self);
 }
@@ -359,6 +400,31 @@ void onRemoteInputEvent(void* context, IInputSource* inputSource, unsigned int i
 - (void)onDeviceStatusChange:(NSNotification*)notification
 {
 	[_detailItem setTitle:[_model deviceStatus]];
+	
+	if([_model deviceModel] == nil)
+		[_sliderView setEnabled:NO];
+	else
+		[_sliderView setEnabled:YES];
+}
+
+- (IBAction)onVolumeSliderChanged:(id)sender
+{
+	[_model postGenericEvent:@"volume" floatValue:[_sliderView floatValue]];
+}
+
+- (void)onDeviceVolumeChange:(NSNotification*)notification
+{
+	[_sliderView setFloatValue:[_model deviceVolume]];
+}
+
+- (IBAction)onMuteButtonChanged:(id)sender
+{
+	[_model postGenericEvent:@"mute" intValue:[_muteView intValue]];
+}
+
+- (void)onDeviceMuteChange:(NSNotification*)notification
+{
+	[_muteView setIntValue:[_model deviceMuted]];
 }
 
 @end
@@ -442,12 +508,6 @@ NSString* presentDeviceModel(NSString* model)
 	{
 		NSOpenPanel* panel = [NSOpenPanel openPanel];
 		[panel setCanChooseFiles:YES];
-		/*[NSApp beginSheet:	panel
-							modalForWindow: [self window]
-							modalDelegate: self
-							didEndSelector: @selector(finishedDeviceChooser:returnCode:contextInfo:)
-							contextInfo: nil
-		];*/
 		
 		[panel beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result)
 		{
@@ -458,15 +518,6 @@ NSString* presentDeviceModel(NSString* model)
 	else
 		[_model setDeviceModel:deviceModel];
 }
-/*- (void)finishedDeviceChooser:(NSWindow*)sheet returnCode:(NSInteger)returnCode contextInfo:(void*)contextInfo
-{
-	NSOpenPanel* panel = (NSOpenPanel*)sheet;
-	[_model setDeviceModel:[[panel URL] path]];
-	[self generateDeviceModelMenu];
-	
-	[sheet orderOut:self];
-}*/
-
 
 - (IBAction)onAutoStartChanged:(id)sender
 {
@@ -491,52 +542,6 @@ NSString* presentDeviceModel(NSString* model)
 			changeMethod:@selector(onSerialPortChanged:)
 			presentMethod:&presentSerialPort
 		];
-	
-	/*// populate serial ports list
-	NSArray* ports = [SerialPort availableSerialPorts];
-	
-	NSString* currentPort = [_model serialPort];
-	
-	NSMenu* serialPortMenu = [[NSMenu alloc] init];
-	int index = 0, activeOption = -1;
-	
-	// add a "none selected" option that is selected when the model shows no selected port
-	if((currentPort == nil) || [currentPort isEqualToString:@""])
-		activeOption = 0;
-	[[serialPortMenu insertItemWithTitle:@"(none)" action:@selector(onSerialPortChanged:) keyEquivalent:@"" atIndex:index++]
-			setRepresentedObject:@""];
-	
-	[serialPortMenu insertItem:[NSMenuItem separatorItem] atIndex:index++];
-	
-	for(int i = 0; i < [ports count]; i++)
-	{
-		NSString* portPath = [ports objectAtIndex:i];
-		NSString* displayedTitle = [portPath substringFromIndex:9]; // cheaply trim "/dev/tty.usbserial-1234" to "usbserial-1234"
-		[[serialPortMenu insertItemWithTitle:displayedTitle action:@selector(onSerialPortChanged:) keyEquivalent:@"" atIndex:index++]
-			setRepresentedObject:portPath];
-			
-		if([portPath isEqualToString:currentPort])
-			activeOption = index;
-	}
-	
-	[serialPortMenu insertItem:[NSMenuItem separatorItem] atIndex:index++];
-	
-	// if the model's current serial port isn't in the list, add a menu item specifically for it, and select that option
-	if(activeOption == -1)
-	{
-		activeOption = index;
-		[[serialPortMenu insertItemWithTitle:currentPort action:@selector(onSerialPortChanged:) keyEquivalent:@"" atIndex:index++]
-				setRepresentedObject:currentPort];
-	}
-	
-	// the "Other" option allows an explicit path. It has no representedObject.
-	[serialPortMenu insertItemWithTitle:@"Other..." action:@selector(onSerialPortChanged:) keyEquivalent:@"" atIndex:index++];
-	
-	[[self serialPortChooser] setMenu:serialPortMenu];
-	
-	//set one as highlighted
-	[[self serialPortChooser] selectItemAtIndex:activeOption];
-	*/
 }
 
 NSString* presentSerialPort(NSString* portPath)
