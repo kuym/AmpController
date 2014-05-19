@@ -261,7 +261,10 @@ void	addGlobalMethod(lua_State* L, void* context, char const* name, lua_CFunctio
 		switch(result)
 		{
 		case LUA_ERRSYNTAX:
-			reason = "syntax error.";
+			{
+				size_t stringLen = 0;
+				reason = lua_tolstring(_luaState, 1, &stringLen);
+			}
 			break;
 		case LUA_ERRMEM:
 		case LUA_ERRGCMM:

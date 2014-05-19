@@ -3,6 +3,8 @@
 #include <Cocoa/Cocoa.h>
 #include <termios.h>
 
+//@@todo: move this to a non-UI thread (stupid non-async UI design, Apple!)
+
 static BOOL gDebugSerial = NO;
 
 @implementation SerialPort

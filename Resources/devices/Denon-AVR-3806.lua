@@ -18,27 +18,32 @@ function parseVolumeLevel(str)
 	v = tonumber(str);
 	
 	if(v == 99) then
-		return(0);	--odd Denon design
-	elseif(v >= 100) then
-		return(v / 10);
-	else
-		return(v);
+		v = 0;	--odd Denon design
+	elseif(str:len() == 3) then
+		v = (v / 10);
 	end
+	
+	return(v);
 end
 
 function formatVolume(value)
 	
-	if(value == 0) then
+	v = "0";
+	if(value <= 0) then	-- special case
 		return("99");
 	else
 		value = math.floor(value * 2);	-- shift to 1/2 unit resolution
 		
 		if((value / 2) == math.floor(value / 2)) then
-			return(tostring(math.floor(value / 2)));		-- if even, "80"
+			v = tostring(math.floor(value / 2));		-- if even, "80"
 		else
-			return(tostring(math.floor(value / 2)) .. "5");	-- if odd, "825"
+			v = tostring(math.floor(value / 2)) .. "5";	-- if odd, "825"
 		end
 	end
+	if(value < 10) then
+		v = "0" .. v;
+	end
+	return(v);
 end
 
 function currentVolume()
@@ -98,14 +103,14 @@ function onEvent(event, value)
 		--try to parse the message
 		while(#buffer > 0) do
 			
-			offset = string.find(buffer, "\r");
+			offset = buffer:find("\r");
 
 			if(offset == nil) then
 				break;
 			end
 
-			response = string.sub(buffer, 1, offset - 1);
-			buffer = string.sub(buffer, offset + 1);
+			response = buffer:sub(1, offset - 1);
+			buffer = buffer:sub(offset + 1);
 
 			print("Denon response:", response);
 			
@@ -121,27 +126,29 @@ function onEvent(event, value)
 				setVolume(volume / volumeMax);
 				setMuted(muted);
 
-			elseif(string.sub(response, 1, 2) == "MV") then		--master volume report
+			elseif(response:sub(1, 2) == "MV") then		--master volume report
 				
-				if(string.sub(response, 3, 5) == "MAX") then	--master volume max report
+				if(response:sub(3, 5) == "MAX") then	--master volume max report
 					
-					reportedVolumeMax = parseVolumeLevel(string.sub(response, 6));
+					reportedVolumeMax = parseVolumeLevel(response:sub(7));
 					
 					if((reportedVolumeMax ~= volumeMax) and (reportedVolumeMax > 0)) then
 						volumeMax = reportedVolumeMax;
 					end
 					
 					setStatus("Denon AVR-3806 ok, volume " .. currentVolume());
+					setVolume(volume / volumeMax);
 
 				else
 					
-					reportedVolume = parseVolumeLevel(string.sub(response, 3));
+					reportedVolume = parseVolumeLevel(response:sub(3));
 
 					if((reportedVolume ~= nil) and (reportedVolume > 0) and (reportedVolume < 100)) then
 						volume = reportedVolume;
 						
 						if(volumeMax > 0) then
 							setStatus("Denon AVR-3806 ok, volume " .. currentVolume());
+							setVolume(volume / volumeMax);
 						else
 							print("don't know max volume");
 						end
@@ -149,14 +156,14 @@ function onEvent(event, value)
 
 				end
 			
-			elseif(string.sub(response, 1, 2) == "PW") then
+			elseif(response:sub(1, 2) == "PW") then
 
-				if(string.sub(response, 3, 5) == "ON") then
+				if(response:sub(3, 5) == "ON") then
 
 					initialized = true;
 					serialWrite("MV?\r");	--seed volume data by querying it
 
-				elseif(string.sub(response, 3, 10) == "STANDBY") then
+				elseif(response:sub(3, 10) == "STANDBY") then
 				
 					if(not initialized) then
 						initialized = true;
