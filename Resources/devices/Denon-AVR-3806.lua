@@ -40,7 +40,7 @@ function formatVolume(value)
 			v = tostring(math.floor(value / 2)) .. "5";	-- if odd, "825"
 		end
 	end
-	if(value < 10) then
+	if(value < 20) then
 		v = "0" .. v;
 	end
 	return(v);
